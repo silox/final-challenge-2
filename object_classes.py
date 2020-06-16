@@ -10,7 +10,7 @@ pygame.init()
 class GUIObject:
     '''Base class for every object in this app'''
     def __init__(self, x, y, width, height, obj_id=None, visible=True,
-                 active=False, hover_cursor='arrow', app=None, **kwargs):
+                 active=False, app=None, name='', **kwargs):
         self.x = x
         self.y = y
         self.width = width
@@ -19,9 +19,9 @@ class GUIObject:
         self.obj_id = obj_id
         self.visible = visible
         self.active = active
-        self.hover_cursor = hover_cursor
 
         self._app_instance = app
+        self.name = name
         self.kwargs = kwargs
 
     def handle_event(self, event):
@@ -44,35 +44,48 @@ class GUIObject:
         x, y = pygame.mouse.get_pos()
         return self.x < x < self.x + self.width and self.y < y < self.y + self.height
 
+    def show(self):
+        self.visible = True
+
+    def hide(self):
+        self.visible = False
+
 
 class TextObject(GUIObject):
-    def __init__(self, gui_options, text, color=BLACK, size=15, font='monospace', **kwargs):
-        super().__init__(*gui_options, **kwargs)
+    def __init__(self, gui_options, text, color=BLACK, size=15, font='monospace', centered=True, **kwargs):
+        self.text = text
         font = pygame.font.SysFont(font, size)
         self.font = font.render(text, True, color)
-        rect = self.font.get_rect()
-        rect.center = self.x + self.width // 2, self.y + self.height // 2
-
-        self.text = text
-        self.color = color
+        super().__init__(*gui_options, *font.size(text), **kwargs)
+        self.rect = self.font.get_rect()
+        if not centered:
+            self.rect.center = self.x + self.width // 2, self.y + self.height // 2
+        else:
+            self.rect.center = self.x, self.y
 
     def draw(self, screen):
-        screen.blit(self.font, (self.x, self.y))
+        screen.blit(self.font, self.rect)
+
+    def move_coords(self, x, y):
+        super().move_coords(x, y)
+        self.rect.center = self.x, self.y
 
 
 class ImageObject(GUIObject):
-    def __init__(self, gui_options, image_path, scale=None, visible=True, **kwargs):
+    def __init__(self, gui_options, image_path, scale=None, centered=False, **kwargs):
         self.img = pygame.image.load(image_path)
         if scale is not None:
-            self.img = pygame.transform.scale(self.img, scale)
-        x, y, _, _ = gui_options
-        super().__init__(x, y, self.img.get_width(), self.img.get_height(), visible=visible, **kwargs)
+            self.img = pygame.transform.smoothscale(self.img, scale)
+        super().__init__(*gui_options, self.img.get_width(), self.img.get_height(), **kwargs)
+        if centered:
+            self.x -= self.img.get_width() // 2
+            self.y -= self.img.get_height() // 2
 
     def draw(self, screen):
         screen.blit(self.img, (self.x, self.y))
 
 
-class InputBox(GUIObject):
+class InputObject(GUIObject):
     COLOR_INACTIVE = pygame.Color('lightskyblue3')
     COLOR_ACTIVE = pygame.Color('dodgerblue2')
     COMFY_CONSTANT = 20
@@ -209,22 +222,22 @@ class InputBox(GUIObject):
             self.idx_right += n
 
 
-class DialogueBox(GUIObject):
+class DialogueObject(GUIObject):
     DARK_SURFACE = pygame.Surface(RESOLUTION)
     BOX_BACKGROUND = (150, 50, 0)
     FONT = pygame.font.SysFont('Helvetica', 25, bold=True)
 
-    def __init__(self, gui_options, text='', **kwargs):
-        super().__init__(*gui_options, **kwargs)
+    def __init__(self, gui_options, text, visible=False, **kwargs):
+        super().__init__(*gui_options, visible=visible, **kwargs)
         self.rect = pygame.Rect(*gui_options)
         self.surface = pygame.Surface(gui_options[2:])
         self.surface.fill(self.BOX_BACKGROUND)
         self.text = text
         self.clicked = False
-        self.fonts = [self.FONT.render(txt, True, BLUE) for txt in DialogueBox.divide_text(text)]
+        self.fonts = [self.FONT.render(txt, True, BLUE) for txt in DialogueObject.divide_text(text)]
         self.DARK_SURFACE.set_alpha(200)
         x, y, width, _ = gui_options
-        self.CLOSE_ICON = ImageObject((x + width - 45, y - 5, width, self.height), 'resources/gfx/but-close.png')
+        self.CLOSE_ICON = ImageObject((x + width - 45, y - 5), 'resources/gfx/misc/but-close.png')
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -232,9 +245,13 @@ class DialogueBox(GUIObject):
                 self.clicked = True
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.CLOSE_ICON.collision() and self.clicked and self.visible:
-                self.visible = False
+                self.hide()
                 self._app_instance.enabled_input_objects.remove(self.obj_id)
             self.clicked = False
+
+    def update(self):
+        if self.visible:
+            self._app_instance.enabled_input_objects.add(self.obj_id)
 
     def draw(self, screen):
         screen.blit(self.DARK_SURFACE, (0, 0))
@@ -246,10 +263,6 @@ class DialogueBox(GUIObject):
             text_coords.center = self.x + self.width // 2, self.y + (i + 1) * 25
             screen.blit(font, text_coords)
 
-    def update(self):
-        if self.visible:
-            self._app_instance.enabled_input_objects.add(self.obj_id)
-
     def move_coords(self, x, y):
         super().move_coords(x, y)
         self.rect.x += x
@@ -258,34 +271,31 @@ class DialogueBox(GUIObject):
 
     @staticmethod
     def divide_text(text):
-        p = text.split()
-        ret = [""]
-        s = 0
-        for i in range(len(p)):
-            if s + len(ret[-1]) > 30:
-                s = len(p[i])
-                ret[-1] = ret[-1][:-1]
-                ret.append(p[i] + " ")
+        text_list = text.split()
+        result = ['']
+        length = 0
+        for i in range(len(text_list)):
+            if length + len(result[-1]) > 30:
+                length = len(text_list[i])
+                result[-1] = result[-1][:-1]
+                result.append(text_list[i] + ' ')
             else:
-                ret[-1] += p[i] + " "
-        ret[-1] = ret[-1][:-1]
-        return ret
+                result[-1] += text_list[i] + ' '
+        result[-1] = result[-1][:-1]
+        return result
 
 
 class ButtonObject(GUIObject):
-    FONT = pygame.font.SysFont('Times New Roman', 30)
-    CLICK_SOUND = pygame.mixer.Sound('resources/sfx/click.ogg')
+    CLICK_SOUND = pygame.mixer.Sound('resources/sfx/sounds/click.ogg')
 
-    def __init__(self, gui_options, on_click, bg_color, text_color, content, *args, **kwargs):
+    def __init__(self, gui_options, on_click, content=None, outline=BLUE, text_color=BLACK, **kwargs):
         super().__init__(*gui_options, **kwargs)
-        self.content = create_content_object(content)
+        self.content = self.create_content_object(content)
         self.rect = pygame.Rect(*gui_options)
-        self.bg_color = bg_color
-        self.prev_color = self.bg_color
+        self.outline = outline
+        self.prev_color = outline
         self.on_click = on_click
         self.clicked = False
-        self.args = args
-        self.kwargs = kwargs
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -293,36 +303,48 @@ class ButtonObject(GUIObject):
                 self.clicked = True
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.rect.collidepoint(event.pos) and self.clicked:
-                self.SFX.play()
-                self.on_click(*self.args, **self.kwargs)
+                self.CLICK_SOUND.play()
+                self.on_click(self._app_instance)
             self.clicked = False
 
     def update(self):
-        self.bg_color = BLACK if self.clicked else self.prev_color
+        if self.content is not None:
+            self.content.update()
+        self.outline = BLACK if self.clicked else self.prev_color
 
     def draw(self, screen):
-        self.content.draw(screen)
-        pygame.draw.rect(screen, self.bg_color, self.rect, 2)
+        if self.content is not None:
+            self.content.draw(screen)
+        pygame.draw.rect(screen, self.outline, self.rect, 2)
 
     def move_coords(self, x, y):
         super().move_coords(x, y)
-        self.content.move_coords(x, y)
+        if self.content is not None:
+            self.content.move_coords(x, y)
         self.rect.x += x
         self.rect.y += y
 
-    @staticmethod
-    def create_content_object(object_dict):
-        return object_type_dict[object_dict['type']](**object_dict['options'])
+    def create_content_object(self, object_dict):
+        if object_dict is None:
+            return None
+        options_dict = {
+            'gui_options': (self.x + self.width // 2, self.y + self.height // 2),
+            'centered': True,
+            **object_dict['options'],
+        }
+        if object_dict['type'] == 'image':
+            options_dict['scale'] = (self.width, self.height)
+        return object_type_dict[object_dict['type']](**options_dict)
 
 
 class AdvertObject(GUIObject):
     def __init__(self, gui_options, image_path, url, **kwargs):
-        super().__init__(*gui_options, **kwargs)
         self.content = ImageObject(gui_options, image_path)
+        super().__init__(*gui_options, self.content.width, self.content.height, **kwargs)
         self.url = url
         self.clicked = False
         self.rect = pygame.Rect(self.x, self.y, self.content.width, self.content.height)
-        self.CLOSE_ICON = ImageObject((self.x + self.content.width - 45, self.y - 5, self.content.width, self.content.height), 'resources/gfx/but-close.png')
+        self.CLOSE_ICON = ImageObject((self.x + self.content.width - 45, self.y - 5), 'resources/gfx/misc/but-close.png')
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -330,7 +352,7 @@ class AdvertObject(GUIObject):
                 self.clicked = True
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.clicked:
             if self.CLOSE_ICON.collision():
-                self.visible = False
+                self.hide()
             elif self.content.collision() and self.visible:
                 webbrowser.open(self.url)
             self.clicked = False
@@ -348,13 +370,93 @@ class AdvertObject(GUIObject):
         self.CLOSE_ICON.move_coords(x, y)
 
 
+class KahootAppObject(GUIObject):
+    BUTTON_PATHS = [f'resources/gfx/kahoot/kahoot-{color}.png' for color in ('red', 'blue', 'green', 'yellow')]
+    BUTTON_OPTIONS = [
+        (RESOLUTION[0] // 4, RESOLUTION[1] // 4 * 3 - 40), (RESOLUTION[0] // 4 * 3, RESOLUTION[1] // 4 * 3 - 40),
+        (RESOLUTION[0] // 4, RESOLUTION[1] // 4 * 3 + 100), (RESOLUTION[0] // 4 * 3, RESOLUTION[1] // 4 * 3 + 100),
+    ]
+
+    class Question:
+        IMAGE_OPTIONS = (RESOLUTION[0] // 2, RESOLUTION[1] // 2 - 200)
+        QUESTION_TEXT_OPTIONS = (RESOLUTION[0] // 2, 50)
+
+        def __init__(self, question, answers, correct, image=None):
+            self.question_text = TextObject(self.QUESTION_TEXT_OPTIONS, question, size=40, font='Helvetica', visible=False)
+            self.answers = [TextObject(options, answer, color=WHITE, size=20, font='Helvetica') for options, answer in zip(KahootAppObject.BUTTON_OPTIONS, answers)]
+            self.correct = correct
+            self.image = None if image is None else ImageObject(self.IMAGE_OPTIONS, image, centered=True, visible=False)
+
+        def draw(self, screen):
+            if self.image is not None:
+                question.draw(screen)
+            self.question_text.draw(screen)
+            for answer in self.answers:
+                answer.draw(screen)
+
+        def select(self, user_answer):
+            return user_answer == self.correct
+
+    def __init__(self, questions_data, **kwargs):
+        super().__init__(*(0,)*4, **kwargs)
+        self.questions = [self.Question(**question) for question in questions_data]
+        self.buttons = [ImageObject(options, path, scale=(450, 120), centered=True) for options, path in zip(self.BUTTON_OPTIONS, self.BUTTON_PATHS)]
+        self.current_question = -1
+        self.clicked_id = 0
+        self.clicked = False
+
+    def start(self):
+        self.current_question = 0
+        self.show()
+
+    def handle_event(self, event):
+        if self.current_question == -1:
+            return
+
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            for i, button in enumerate(self.buttons):
+                if button.collision():
+                    self.clicked = True
+                    self.clicked_id = i
+
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1 and self.clicked:
+            for i, button in enumerate(self.buttons):
+                if button.collision() and i == self.clicked_id:
+                    if self.questions[self.current_question].select(self.clicked_id):
+                        self.current_question += 1
+                    else:
+                        self._app_instance.increase_timer(120)
+                        self.return_back()
+                    break
+            self.clicked = False
+
+    def update(self):
+        # Last question is correct
+        if self.current_question == len(self.questions):
+            self.return_back()
+            self._app_instance.current_level.get_object('elevator_button_up').enabled = True
+
+    def draw(self, screen):
+        if self.current_question == -1:
+            return
+
+        for button in self.buttons:
+            button.draw(screen)
+        self.questions[self.current_question].draw(screen)
+
+    def return_back(self):
+        self.current_question = -1
+        for gui_object in self._app_instance.current_level.get_all_objects():
+            if gui_object.name != 'instructions_dialogue':
+                gui_object.show()
+
+
 class ChangeLevelObject(GUIObject):
     def __init__(self, gui_options, direction, enabled=None, **kwargs):
-        self.img_enabled = ImageObject(gui_options, f'resources/gfx/elevator-{direction}.png')
-        self.img_disabled = ImageObject(gui_options, f'resources/gfx/elevator-{direction}-dis.png')
-        self.img_lightened = ImageObject(gui_options, f'resources/gfx/elevator-{direction}-light.png')
-        x, y, _, _ = gui_options
-        super().__init__(x, y, self.img_enabled.img.get_width(), self.img_enabled.img.get_height(), **kwargs)
+        self.img_enabled = ImageObject(gui_options, f'resources/gfx/elevator/elevator-{direction}.png')
+        self.img_disabled = ImageObject(gui_options, f'resources/gfx/elevator/elevator-{direction}-dis.png')
+        self.img_lightened = ImageObject(gui_options, f'resources/gfx/elevator/elevator-{direction}-light.png')
+        super().__init__(*gui_options, self.img_enabled.img.get_width(), self.img_enabled.img.get_height(), **kwargs)
         self.clicked = False
         self.direction = direction
         self.enabled = enabled if enabled is not None else True if direction == 'down' else False
@@ -368,7 +470,7 @@ class ChangeLevelObject(GUIObject):
                 self.clicked = True
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
             if self.img_enabled.collision() and self.clicked and self.enabled and self.visible:
-                assert self._app_instance is not None, 'NextLevelObject does not have its app attached'
+                assert self._app_instance is not None, 'ChangeLevelObject does not have its app attached'
                 self._app_instance.move_screen(self.changer)
             self.clicked = False
 
@@ -391,9 +493,10 @@ object_type_dict = {
     'object': GUIObject,
     'advert': AdvertObject,
     'button': ButtonObject,
-    'dialogue_box': DialogueBox,
+    'dialogue': DialogueObject,
     'image': ImageObject,
-    'input_box': InputBox,
+    'input': InputObject,
+    'kahoot': KahootAppObject,
     'level_changer': ChangeLevelObject,
     'text': TextObject,
 }

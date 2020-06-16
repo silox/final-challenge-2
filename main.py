@@ -1,5 +1,4 @@
 from importlib import import_module
-from itertools import chain
 from os import listdir
 import pygame
 from random import randrange as rr
@@ -7,11 +6,12 @@ import time
 
 from constants import *
 from level import Level
+from misc_classes import FloorTransition, Timer
 
 
 class App:
     APP_NAME = 'Final challenge 2.0'
-    DEFAULT_BACKGROUND = 'resources/gfx/bg.png'
+    DEFAULT_BACKGROUND = 'resources/gfx/backgrounds/bg-default.png'
 
     def __init__(self):
         pygame.display.set_caption(self.APP_NAME)
@@ -19,7 +19,8 @@ class App:
         self.quit = False
         self.debug = True
         self.current_level_id = 0
-        self.animation = Animation(active=False)
+        self._timer = Timer()
+        self.animation = FloorTransition(active=False)
         self.levels = []
         self.enabled_input_objects = set()
         self.current_level = None
@@ -48,13 +49,13 @@ class App:
     def move_screen(self, direction):
         new_level_id = direction + self.current_level_id
         if 0 <= new_level_id < len(self.levels):
-            self.animation = Animation(self.current_level, self.levels[new_level_id], direction)
+            self.animation = FloorTransition(self.current_level, self.levels[new_level_id], direction)
 
     def handle_input(self):
         # Forbid input while animation is active
-        if self.animation.active:
-            return
         for event in pygame.event.get():
+            if self.animation.active:
+                continue
             if event.type == pygame.QUIT:
                 self.quit = True
             # handle input for every object in current level separately
@@ -85,40 +86,17 @@ class App:
                 if obj.visible:
                     obj.draw(self.pg_screen)
 
+    def increase_timer(self, seconds):
+        self._timer.add(seconds)
+        self._animate_timer_change(seconds)
 
-class Animation:
-    def __init__(self, old_level=None, new_level=None, direction=0, duration=0.5, active=True):
-        assert RESOLUTION[1] % duration == 0 and FPS * duration < RESOLUTION[1]
-        self.y_shift = RESOLUTION[1] // (duration * FPS)
-        self.total_shift = 0
-        self.direction = direction
-        self.old_level = old_level
-        self.active = active
-        self.new_level = new_level
-        if old_level is not None and new_level is not None:
-            for obj in new_level.get_all_objects():
-                obj.move_coords(0, -RESOLUTION[1] * direction)
-            new_level.background.y -= RESOLUTION[1] * direction
+    def decrease_timer(self, seconds):
+        self.increase_timer(-seconds)
 
-    def move(self, app=None):
-        if not self.active:
-            return
-        if self.total_shift >= RESOLUTION[1]:
-            # cleanup
-            self.active = False
-            if app is not None:
-                app.current_level_id += self.direction
-            for obj in self.old_level.get_all_objects():
-                obj.move_coords(0, -self.total_shift * self.direction)
-            self.old_level.background.y = 0
-            self.total_shift = 0
-        else:
-            # moving
-            self.old_level.background.move_coords(0, self.y_shift * self.direction)
-            self.new_level.background.move_coords(0, self.y_shift * self.direction)
-            for obj in chain(self.old_level.get_all_objects(), self.new_level.get_all_objects()):
-                obj.move_coords(0, self.y_shift * self.direction)
-            self.total_shift += self.y_shift
+    def _animate_timer_change(self, seconds):
+        color = RED if seconds < 0 else GREEN
+        sign = '+' if seconds < 0 else '-'
+        # TODO animation of added seconds
 
 
 def main():

@@ -1,6 +1,6 @@
 OBJECTS = {
     'sample_input_box': {
-        'type': 'input_box',
+        'type': 'input',
         'options': {
             'gui_options': (300, 110, 150, 100),
             'task': '1 + 1 = ?',
@@ -14,8 +14,8 @@ OBJECTS = {
     'sample_advert': {
         'type': 'advert',
         'options': {
-            'gui_options': (100, 100, 0, 0),
-            'image_path': 'resources/gfx/ad1.png',
+            'gui_options': (100, 100),
+            'image_path': 'resources/gfx/adverts/ad1.png',
             'url': 'google.com',
         }
     },
@@ -23,15 +23,15 @@ OBJECTS = {
     'elevator_panel': {
         'type': 'image',
         'options': {
-            'gui_options': (1050, 150, 0, 0),
-            'image_path': 'resources/gfx/elevator-panel.png',
+            'gui_options': (1050, 150),
+            'image_path': 'resources/gfx/elevator/elevator-panel.png',
         }
     },
 
     'elevator_button_up': {
         'type': 'level_changer',
         'options': {
-            'gui_options': (1100, 200, 0, 0),
+            'gui_options': (1100, 200),
             'direction': 'up',
             'enabled': True,
         }
@@ -40,7 +40,7 @@ OBJECTS = {
     'elevator_button_down': {
         'type': 'level_changer',
         'options': {
-            'gui_options': (1100, 350, 0, 0),
+            'gui_options': (1100, 350),
             'direction': 'down',
             'enabled': True,
         }

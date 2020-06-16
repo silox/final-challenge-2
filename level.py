@@ -7,7 +7,7 @@ class Level:
         self._num_of_objects = len(self._objects)
         self._app_instance = app
         self.level_id = level_id
-        self.background = obj_cls.ImageObject((0, 0, 0, 0), background, RESOLUTION)
+        self.background = obj_cls.ImageObject((0, 0), background, RESOLUTION)
         self.music = music
 
     def handle_event(self, event):
@@ -35,5 +35,5 @@ class Level:
         result_objects = {}
         for obj_id, (name, params) in enumerate(objects.items()):
             SpecificObject = obj_cls.object_type_dict[params['type']]
-            result_objects[name] = SpecificObject(**params['options'], app=app, obj_id=obj_id)
+            result_objects[name] = SpecificObject(**params['options'], app=app, obj_id=obj_id, name=name)
         return result_objects
