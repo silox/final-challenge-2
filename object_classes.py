@@ -63,17 +63,30 @@ class GUIObject:
 
 class TextObject(GUIObject):
     def __init__(self, gui_options, text, color=BLACK, size=15, max_len=80, spacing=40, font='monospace', centered=True, **kwargs):
-        font = pygame.font.SysFont(font, size)
-        super().__init__(*gui_options, *font.size(text), **kwargs)
-        self.fonts = [font.render(line, True, color) for line in self.divide_text(text, max_len)]
-        self.rects = []
+        self.font = pygame.font.SysFont(font, size)
+        super().__init__(*gui_options, *self.font.size(text), **kwargs)
+        self.color = color
+        self.text = text
+        self.max_len = max_len
         self.spacing = spacing
+        self.centered = centered
+        self.update_text(text, color)
+        
+
+    def update_text(self, text=None, color=None):
+        if color is not None:
+            self.color = color
+        if text is not None:
+            self.text = text
+        self.fonts = [self.font.render(line, True, self.color) for line in self.divide_text(self.text, self.max_len)]
+        self.rects = []
         for i, font in enumerate(self.fonts):
             self.rects.append(font.get_rect())
-            if not centered:
+            if not self.centered:
                 self.rects[-1].center = self.x + self.width // 2, self.y + self.height // 2 + i * self.spacing
             else:
                 self.rects[-1].center = self.x, self.y + i * self.spacing
+
 
     def draw(self, screen):
         for font, rect in zip(self.fonts, self.rects):
@@ -267,7 +280,7 @@ class DialogueObject(GUIObject):
         self.surface.fill(self.BOX_BACKGROUND)
         self.text = text
         self.clicked = False
-        self.fonts = [self.FONT.render(txt, True, BLUE) for txt in TextObject.divide_text(text, self.width // 16)]
+        self.fonts = [self.FONT.render(txt, True, WHITE) for txt in TextObject.divide_text(text, self.width // 16)]
         self.DARK_SURFACE.set_alpha(200)
         x, y, width, _ = gui_options
         self.CLOSE_ICON = ImageObject((x + width - 45, y - 5), 'resources/gfx/misc/but-close.png')
@@ -486,32 +499,45 @@ class TaskPanelObject(GUIObject):
             self.tests = tests
 
         def submit(self, parent):
+            parent.submit_message.update_text('Automatic correction in progress... Please wait.', pygame.Color('lightskyblue3'))
+            result = self._process_submit()
+            parent.result = result
+
+            message_dict = {
+                'OK': ('Success!', SUCCESS),
+                'WA': ('Wrong answer!', ERROR),
+                'TLE': ('Time limit exceeded.', ERROR),
+                'EXC': ('Your program returned non zero value (see console).', ERROR),
+                'FNF': (f'File {self.name + ".py"} not found in submits folder', WARNING),
+                'ERR': ('Something went seriously wrong. Check console and contact admin.', ERROR),
+            }
+            parent.submit_message.update_text(*message_dict[result])
+
+        def _process_submit(self):
             start_time = time.time()
             for test_input, correct_output in self.tests:
                 try:
                     for cmd in 'python', 'python3':
                         process = Popen([cmd, f'submits/{self.name}.py'], stdin=PIPE, stdout=PIPE, stderr=PIPE, encoding='utf-8')
-                        user_output, _ = process.communicate(input=test_input, timeout=self.TIMEOUT)
+                        user_output, error_output = process.communicate(input=test_input, timeout=self.TIMEOUT)
                         if not process.returncode:
                             break
+                        if process.returncode == 2:
+                            return 'FNF'
                     else:
-                        parent.result = 'EXC'
-                        return
+                        print(error_output)
+                        return 'EXC'
                 except TimeoutExpired:
                     process.kill()
-                    parent.result = 'TLE'
-                    return
+                    return 'TLE'
                 except Exception as exc:
                     print(exc)
-                    parent.result = 'ERR'
-                    return
+                    return 'ERR'
                 if user_output != correct_output + '\n':
-                    parent.result = 'WA'
-                    return
+                    return 'WA'
                 if time.time() - start_time > self.time_limit:
-                    parent.result = 'TLE'
-                    return
-            parent.result = 'OK'
+                    return 'TLE'
+            return 'OK'
 
     def __init__(self, centered=True, **kwargs):
         x_mid, y_mid = RESOLUTION[0] // 2, RESOLUTION[1] // 2
@@ -524,9 +550,12 @@ class TaskPanelObject(GUIObject):
         self.panel_top = ImageObject((x_mid, y_mid + 190), 'resources/gfx/task-panel/panel-top.png', centered=True, scale=(100, 100))
         self.left_arrow = ImageObject((x_mid - 140, y_mid - 230), 'resources/gfx/task-panel/left-arrow.png', scale=(50, 50))
         self.right_arrow = ImageObject((x_mid + 90, y_mid - 230), 'resources/gfx/task-panel/right-arrow.png', scale=(50, 50))
+        self.task_number_text = TextObject((x_mid - 50, y_mid - 205), '1', color=RED, size=40)
         self.current_task = 0
+        self.is_completed = False
         self.result = None
         self.tasks = [self.Task(*task) for task in TASKS]
+        self.submit_message = TextObject((x_mid, y_mid + 45), f'Leave {self.tasks[0].name + ".py"} in sumbits folder and press SUBMIT to submit.', color=WARNING, max_len=22, spacing=15, centered=True)
         self.dialogues = [DialogueObject((150, 200, 700, 300), task.text, obj_id=self.obj_id, app=self._app_instance) for task in self.tasks]
 
     def handle_event(self, event):
@@ -534,23 +563,32 @@ class TaskPanelObject(GUIObject):
             self.dialogues[self.current_task].handle_event(event)
             return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.elevator_button.reactive and self.elevator_button.collision():
+                self.elevator_button.disable()
+                self._app_instance.current_level.get_object('elevator_button_down').enable()
+            if self.is_completed:
+                return
             if self.button_submit.collision():
                 thread = threading.Thread(target=self.tasks[self.current_task].submit, args=[self])
                 thread.start()
             elif self.button_task.collision():
                 self.dialogues[self.current_task].enable()
-            elif self.elevator_button.reactive and self.elevator_button.collision():
-                self.elevator_button.disable()
-                self._app_instance.current_level.get_object('elevator_button_down').enable()
             elif self.left_arrow.reactive and self.left_arrow.collision():
                 self.current_task -= 1
+                self.submit_message.update_text(f'Leave {self.tasks[self.current_task].name + ".py"} in sumbits folder and press SUBMIT to submit.')
+                self.task_number_text.update_text(str(self.current_task + 1))
             elif self.right_arrow.reactive and self.right_arrow.collision():
                 self.current_task += 1
+                self.submit_message.update_text(f'Leave {self.tasks[self.current_task].name + ".py"} in sumbits folder and press SUBMIT to submit.')
+                self.task_number_text.update_text(str(self.current_task + 1))
 
     def update(self):
         if self.result == 'OK':
+            self.is_completed = True
             self.panel_top.disable()
             self.elevator_button.enable()
+            self.task_number_text.update_text(color=SUCCESS)
+            self.result = None
 
         if self.dialogues[self.current_task].active:
             self.dialogues[self.current_task].update()
@@ -566,25 +604,20 @@ class TaskPanelObject(GUIObject):
 
     def draw(self, screen):
         self.panel.draw(screen)
-        if self.result is not None:
-            #self.result_text_object.draw(screen)
-            print(self.result)
-            self.result = None
         
-        if self.elevator_button.visible:
-            self.elevator_button.draw(screen)
-        if self.panel_top.visible:
-            self.panel_top.draw(screen)
-        
-        if self.button_submit.visible:
-            self.button_submit.draw(screen)
-        if self.button_task.visible:
-            self.button_task.draw(screen)
+        self.task_number_text.draw(screen)
+        self.button_submit.draw(screen)
+        self.button_task.draw(screen)
+        self.submit_message.draw(screen)
 
         if self.left_arrow.visible:
             self.left_arrow.draw(screen)
         if self.right_arrow.visible:
             self.right_arrow.draw(screen)
+        if self.elevator_button.visible:
+            self.elevator_button.draw(screen)
+        if self.panel_top.visible:
+            self.panel_top.draw(screen)
 
         if self.dialogues[self.current_task].visible:
             self.dialogues[self.current_task].draw(screen)
@@ -599,6 +632,7 @@ class TaskPanelObject(GUIObject):
         self.panel_top.move_coords(x, y)
         self.left_arrow.move_coords(x, y)
         self.right_arrow.move_coords(x, y)
+        self.submit_message.move_coords(x, y)
 
 
 class ChangeLevelObject(GUIObject):

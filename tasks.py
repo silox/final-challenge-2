@@ -6,8 +6,7 @@ TASKS = [
         'binary_search',
         'Vstup obsahuje 2 riadky. Na prvom riadku je n (n >= 1) unikátnych celých čísel oddelených medzerami, usporiadaných vzostupne. '
         'Na druhom riadku k (k >= 1) celých čísel. Pre každé číslo k zisti, či sa vyskytuje v prvom riadku. '
-        'Každý index vypisuj na nový riadok'
-        'Ak áno, vypíš jeho index, inak -1.',
+        'Ak áno, vypíš jeho index, inak -1. Každý index vypisuj na nový riadok',
         5,  # Time limit in seconds
         [
             ('-1\n-1', '0'),

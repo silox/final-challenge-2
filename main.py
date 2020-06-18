@@ -17,6 +17,7 @@ class App:
         pygame.display.set_caption(self.APP_NAME)
         self.pg_screen = pygame.display.set_mode(RESOLUTION)
         self.quit = False
+        self.easy_mode = False
         self.debug = True
         self.current_level_id = 0
         self._timer = Timer()
