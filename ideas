@@ -13,18 +13,14 @@ za tieto ulohy budu hinty, alebo nejake kluce, to este treba domysliet
 NAPADY NA POSCHODIA:
     - pridat nejaku anime miestnost :D
     - dat tam kresliacu obrazovku, kde budu musiet kreslit text a na konci sa vypise troll text, ze 'TODO implementovat detekciu pisma'
-      mozno bude dobre ich to 'naucit', aby omylom neskusili len tak skipovat 
-    - Ktorý z týchto programovacích jazykov dokáže preložiť kód, pretože neobsahuje syntaktickú chybu?
-        #include <stdio.h>
-        #include <iostream>
-        print("Hello world!");
+      mozno bude dobre ich to 'naucit', aby omylom neskusili len tak skipovat  
     - nieco, ako bol prvy level v The Final Challenge (trolly inputboxy)
     - ziskat heslo cez scrapovanie webu
     - pridat fake anime quiz, ktory bude chvalit za kazdu odpoved, nakoniec je treba spravit nieco uplne ine
     - maybe nejakym sposobom zabugovana miestnost
     - otravna miestnost s otravnou hudbou a reklamami (a pridat ich tam mega vela, nesrat sa s tym) a za nou hned miestnost pokoja
-    - kahoot miestnost aj s hudbickou
     - hacking miestnost (tri zamky s inputboxami), spojil by som s hrou mimo appky
+
 
 TODO / IDEAS: 
     - ak budem robit YT video, pridaj SUBSCRIBE TO MY CHANNEL
@@ -35,6 +31,3 @@ TODO / IDEAS:
     - spravit trailer a poslat im ho na fb vo forme phishing utoku (napr. 'Eduard video :o :o')
     - pridat heartbeat pri poslednych otazkach kvizu, postupne zosilovat
     - vytvorit globalny list objektov
-    - elevator music
-
-    - ak bude cas, tak skraslit vytvaranie kahootu

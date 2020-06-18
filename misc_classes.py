@@ -44,6 +44,6 @@ class Timer:
         self.seconds = 0
         self.minutes = 0
         self.hours = 0
-    
+
     def add(self, seconds):
         self.seconds += seconds

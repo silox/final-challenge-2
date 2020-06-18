@@ -1,5 +1,6 @@
-import object_classes as obj_cls
 from constants import RESOLUTION
+import object_classes as obj_cls
+
 
 class Level:
     def __init__(self, level_id, background=None, music=None, objects=None, app=None):
@@ -14,7 +15,8 @@ class Level:
         for gui_object in self.get_all_objects():
             if self._app_instance.enabled_input_objects and gui_object.obj_id not in self._app_instance.enabled_input_objects:
                 continue
-            gui_object.handle_event(event)
+            if gui_object.reactive:
+                gui_object.handle_event(event)
 
     def add_object(self, name, new_object):
         if name in self._objects:

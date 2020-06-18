@@ -1,5 +1,5 @@
 BACKGROUND = 'resources/gfx/adverts/ad3.png'
-MUSIC = 'resources/sfx/themes/ruski-melody.mp3'
+# MUSIC = 'resources/sfx/themes/ruski-melody.mp3'
 
 OBJECTS = {
     'sample_input': {
@@ -14,13 +14,9 @@ OBJECTS = {
         }
     },
 
-    'sample_advert': {
-        'type': 'advert',
-        'options': {
-            'gui_options': (100, 100),
-            'image_path': 'resources/gfx/misc/but-close.png',
-            'url': 'google.com',
-        }
+    'task_panel': {
+        'type': 'task_panel',
+        'options': {}
     },
 
     'elevator_panel': {
@@ -46,6 +42,9 @@ OBJECTS = {
             'gui_options': (1100, 350),
             'direction': 'down',
             'enabled': True,
+            'reactive': False,
+            'active': False,
+            'visible': False,
         }
     },
 }

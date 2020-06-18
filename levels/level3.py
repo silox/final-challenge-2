@@ -1,35 +1,74 @@
 # Kahoot level
 
-# MUSIC = 'resources/sfx/themes/kahoot-music.mp3'
+MUSIC = 'resources/sfx/themes/kahoot-music.mp3'
 
 
 def start_click(app):
     for gui_object in app.current_level.get_all_objects():
-        gui_object.hide()
-    kahoot_app = app.current_level.get_object('kahoot').start()
+        gui_object.disable()
+    app.current_level.get_object('kahoot').start()
 
 
 def instructions_click(app):
-    app.current_level.get_object('instructions_dialogue').show()
+    app.current_level.get_object('instructions_dialogue').enable()
 
+
+kahoot_questions_data = [
+    {
+        'question': 'Ktorá odpoveď je správna?',
+        'answers': ('Správna odpoveď je modrá', 'Červená odpoveď klame', 'Žltá odpoveď klame', 'Modrá odpoveď hovorí pravdu'),
+        'correct': 1,
+        'image': 'resources/gfx/kahoot/kahoot-image1.png',
+    },
+    {
+        'question': 'Ktorý z týchto programovacích jazykov dokáže preložiť kód, pretože neobsahuje syntaktickú chybu?',
+        'answers': ('C', 'Pascal', 'Python', 'C++'),
+        'correct': 2,
+        'image': 'resources/gfx/kahoot/kahoot-image2.png',
+    },
+    {
+        'question': 'Aká je časová zložitosť algoritmu na obrázku, ak si označíme n ako dĺžku array?',
+        'answers': ('O(log(n)) - logaritmická', 'O(n) - lineárna', 'O(n * log(n))', 'O(n^2) - kvadratická'),
+        'correct': 3,
+        'image': 'resources/gfx/kahoot/kahoot-image3.png',
+    },
+    {
+        'question': 'Aké je najvhodnejšie pomenovanie grafu na obrázku?',
+        'answers': ('Acyklický neorientovaný', 'Cyklický neorientovaný', 'Acyklický orientovaný', 'Cyklický orientovaný'),
+        'correct': 2,
+        'image': 'resources/gfx/kahoot/kahoot-image4.png',
+    },
+    {
+        'question': 'Koľko komponent má graf na obrázku?',
+        'answers': ('1', '2', '7', '8'),
+        'correct': 1,
+        'image': 'resources/gfx/kahoot/kahoot-image5.png',
+    },
+    {
+        'question': 'Je na obrázku korektný binárny strom?',
+        'answers': ('Áno', 'Nie', 'To bude isto habaďúra', 'Táto možnosť tu vôbec nie je preto, že sa mi nechcelo implementovať menej ako 4 možné odpovede'),
+        'correct': 0,
+        'image': 'resources/gfx/kahoot/kahoot-image6.png',
+    },
+    # {
+    #     'question': '',
+    #     'answers': ('', '', '', ''),
+    #     'correct': ,
+    #     'image': 'resources/gfx/kahoot/kahoot-image.png',
+    # },
+    # {
+    #     'question': '',
+    #     'answers': ('', '', '', ''),
+    #     'correct': ,
+    #     'image': 'resources/gfx/kahoot/kahoot-image.png',
+    # },
+]
 
 OBJECTS = {
     'kahoot': {
         'type': 'kahoot',
         'options': {
-            'questions_data': [
-                {
-                    'question': 'Sample question',
-                    'answers': ('this is incorrect', 'but this is right', 'gg', 'wp'),
-                    'correct': 1,
-                    'image': None,
-                },
-                {
-                    'question': 'Another question',
-                    'answers': ('last one will be right', 'hello', 'trying some longer textooooooooooooooooooooo omg omg omg omg omg omg', 'hi is right?!'),
-                    'correct': 3,
-                },
-            ],
+            'questions': kahoot_questions_data,
         }
     },
 

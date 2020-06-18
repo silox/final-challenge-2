@@ -1,7 +1,7 @@
 from importlib import import_module
 from os import listdir
 import pygame
-from random import randrange as rr
+import random
 import time
 
 from constants import *
@@ -64,14 +64,15 @@ class App:
     def logic(self):
         # do transition between levels if animation is active
         self.animation.move(self)
-        
+
         # change level if level_id is changed
         self.change_level(self.current_level_id)
 
         # do logic for every level object
         for obj in self.current_level.get_all_objects():
-            obj.update()
-        
+            if obj.active:
+                obj.update()
+
     def render(self):
         self.current_level.background.draw(self.pg_screen)
         if self.animation.active:
@@ -100,7 +101,10 @@ class App:
 
 
 def main():
+    pygame.mixer.pre_init(22050, -16, 2, 1024)
     pygame.init()
+    pygame.mixer.quit()
+    pygame.mixer.init(22050, -16, 2, 1024)
     app = App()
     clock = pygame.time.Clock()
     while not app.quit:
