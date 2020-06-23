@@ -4,9 +4,10 @@ import threading
 import time
 import webbrowser
 
-
-from constants import *
+from animation import MoveObjectAnimation
+from colors import Color
 from tasks import TASKS
+from window_constants import FPS, RESOLUTION
 
 
 pygame.init()
@@ -62,7 +63,9 @@ class GUIObject:
 
 
 class TextObject(GUIObject):
-    def __init__(self, gui_options, text, color=BLACK, size=15, max_len=80, spacing=40, font='monospace', centered=True, **kwargs):
+    '''gui_options - (x, y)'''
+    def __init__(self, gui_options, text, color=Color.black, size=15, max_len=80, spacing=40,
+                 font='monospace', centered=True, **kwargs):
         self.font = pygame.font.SysFont(font, size)
         super().__init__(*gui_options, *self.font.size(text), **kwargs)
         self.color = color
@@ -71,25 +74,29 @@ class TextObject(GUIObject):
         self.spacing = spacing
         self.centered = centered
         self.update_text(text, color)
-        
 
-    def update_text(self, text=None, color=None):
+    def update_text(self, text=None, color=None, alpha=None):
         if color is not None:
             self.color = color
         if text is not None:
             self.text = text
-        self.fonts = [self.font.render(line, True, self.color) for line in self.divide_text(self.text, self.max_len)]
+        if alpha is not None:
+            self._fonts = [self.font.render(line, True, self.color, self.color) for line in self.divide_text(self.text, self.max_len)]
+            for font in self._fonts:
+                font.set_colorkey(self.color)
+                font.set_alpha(alpha)
+        else:
+            self._fonts = [self.font.render(line, True, self.color) for line in self.divide_text(self.text, self.max_len)]
         self.rects = []
-        for i, font in enumerate(self.fonts):
+        for i, font in enumerate(self._fonts):
             self.rects.append(font.get_rect())
             if not self.centered:
-                self.rects[-1].center = self.x + self.width // 2, self.y + self.height // 2 + i * self.spacing
+                self.rects[-1] = self.rects[-1].move(self.x, self.y + i * self.spacing)
             else:
                 self.rects[-1].center = self.x, self.y + i * self.spacing
 
-
     def draw(self, screen):
-        for font, rect in zip(self.fonts, self.rects):
+        for font, rect in zip(self._fonts, self.rects):
             screen.blit(font, rect)
 
     def move_coords(self, x, y):
@@ -98,23 +105,24 @@ class TextObject(GUIObject):
             rect_x, rect_y = rect.center
             rect.center = x + rect_x, y + rect_y
 
+    def get_number_of_lines(self):
+        return len(self._fonts)
+
     @staticmethod
     def divide_text(text, max_len):
-        text_list = text.split()
-        result = ['']
-        length = 0
-        for i in range(len(text_list)):
-            if length + len(result[-1]) > max_len:
-                length = len(text_list[i])
-                result[-1] = result[-1][:-1]
-                result.append(text_list[i] + ' ')
+        result = []
+        current = ''
+        for word in text.split():
+            if len(word) + len(current) > max_len:
+                result.append(current[:-1])
+                current = word + ' '
             else:
-                result[-1] += text_list[i] + ' '
-        result[-1] = result[-1][:-1]
-        return result
+                current += word + ' '
+        return result + [current[:-1]]
 
 
 class ImageObject(GUIObject):
+    '''gui_options - (x, y)'''
     def __init__(self, gui_options, image_path, scale=None, centered=False, **kwargs):
         self.img = pygame.image.load(image_path)
         if scale is not None:
@@ -129,23 +137,22 @@ class ImageObject(GUIObject):
 
 
 class InputObject(GUIObject):
-    COLOR_INACTIVE = pygame.Color('lightskyblue3')
-    COLOR_ACTIVE = pygame.Color('dodgerblue2')
+    '''gui_options - (x, y, width, height)'''
     COMFY_CONSTANT = 20
     FONT_SIZE = 10
     TEXT_SIZE = 16
     MAXLEN = 200
 
     def __init__(self, gui_options, task, answer, correct='Correct answer', wrong='Wrong answer',
-                 initial_text='', synonyms=None, **kwargs):
+                 initial_text='', synonyms=None, bold=False, **kwargs):
         super().__init__(*gui_options, **kwargs)
         x, y, width, height = gui_options
         self.rect = pygame.Rect(*gui_options)
-        self.FONT = pygame.font.SysFont('monospace', self.TEXT_SIZE)
-        self.font = self.FONT.render(initial_text, True, BLACK)
-        self.bottom_text = self.FONT.render('', True, RED)
-        self.above_text = self.FONT.render(task, True, BLACK)
-        self.color = self.COLOR_INACTIVE
+        self.FONT = pygame.font.SysFont('monospace', self.TEXT_SIZE, bold=bold)
+        self.font = self.FONT.render(initial_text, True, Color.black)
+        self.bottom_text = self.FONT.render('', True, Color.red)
+        self.above_text = self.FONT.render(task, True, Color.black)
+        self.color = Color.inactive
         self.synonyms = set() if synonyms is None else set(synonyms)
         self.answer = answer
         self.active_cursor = False
@@ -167,11 +174,11 @@ class InputObject(GUIObject):
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             self.active_cursor = self.rect.collidepoint(event.pos)
-            self.color = self.COLOR_ACTIVE if self.active_cursor else self.COLOR_INACTIVE
+            self.color = Color.active if self.active_cursor else Color.inactive
         if event.type == pygame.KEYDOWN and self.active_cursor:
             if event.key == pygame.K_RETURN:
                 self.done = self.text.lower() == self.answer or self.text.lower() in self.synonyms
-                text, color = (self.correct, GREEN) if self.done else (self.wrong, RED)
+                text, color = (self.correct, Color.green) if self.done else (self.wrong, color.red)
                 self.bottom_text = self.FONT.render(text, True, color)
                 self.text = ''
                 self.idx = 0
@@ -223,7 +230,7 @@ class InputObject(GUIObject):
         pygame.draw.rect(screen, self.color, self.rect, 2)
         if self.active_cursor and self.ticks % 50 < 25:
             cursor_x = (self.x + (self.idx + 1) * self.FONT_SIZE) - self.FONT_SIZE // 2 + 1
-            pygame.draw.line(screen, BLACK, (cursor_x, self.y + self.height // 4), (cursor_x, self.y + int(self.height * 0.75)), 2)
+            pygame.draw.line(screen, Color.black, (cursor_x, self.y + self.height // 4), (cursor_x, self.y + int(self.height * 0.75)), 2)
 
     def move_coords(self, x, y):
         super().move_coords(x, y)
@@ -266,24 +273,25 @@ class InputObject(GUIObject):
             self.idx_right += n
 
 
-class DialogueObject(GUIObject):
+class MessageObject(GUIObject):
+    '''gui_options - (x, y, width)'''
     DARK_SURFACE = pygame.Surface(RESOLUTION)
-    BOX_BACKGROUND = (150, 50, 0)
     FONT = pygame.font.SysFont('Helvetica', 25, bold=True)
 
-    def __init__(self, gui_options, text, enabled=False, **kwargs):
-        super().__init__(*gui_options, **kwargs)
+    def __init__(self, gui_options, text, text_color=Color.white, enabled=False, **kwargs):
+        x, y, width = gui_options
+        self.text = TextObject((x + 30, y + 75), text, color=text_color, max_len=width // 14, spacing=25,
+                               font='Helvetica', size=25, bold=True, centered=False)
+        height = self.text.get_number_of_lines() * 25 + 100
+        super().__init__(x, y, width, height, **kwargs)  # Add empty height
         if not enabled:
             self.disable()
-        self.rect = pygame.Rect(*gui_options)
-        self.surface = pygame.Surface(gui_options[2:])
-        self.surface.fill(self.BOX_BACKGROUND)
-        self.text = text
+        self.rect = pygame.Rect(x, y, width, height)
+        self.surface = pygame.Surface((width, height))
+        self.surface.fill(Color.chocolate)
         self.clicked = False
-        self.fonts = [self.FONT.render(txt, True, WHITE) for txt in TextObject.divide_text(text, self.width // 16)]
         self.DARK_SURFACE.set_alpha(200)
-        x, y, width, _ = gui_options
-        self.CLOSE_ICON = ImageObject((x + width - 45, y - 5), 'resources/gfx/misc/but-close.png')
+        self.CLOSE_ICON = ImageObject((x + width - 55, y + 5), 'resources/gfx/misc/but-close.png')
 
     def handle_event(self, event):
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
@@ -302,24 +310,23 @@ class DialogueObject(GUIObject):
     def draw(self, screen):
         screen.blit(self.DARK_SURFACE, (0, 0))
         screen.blit(self.surface, (self.x, self.y))
-        pygame.draw.rect(screen, WOODEN, self.rect, 4)
+        pygame.draw.rect(screen, Color.wooden, self.rect, 4)
         self.CLOSE_ICON.draw(screen)
-        for i, font in enumerate(self.fonts):
-            text_coords = font.get_rect()
-            text_coords.center = self.x + self.width // 2, self.y + (i + 1) * 25
-            screen.blit(font, text_coords)
+        self.text.draw(screen)
 
     def move_coords(self, x, y):
         super().move_coords(x, y)
         self.rect.x += x
         self.rect.y += y
         self.CLOSE_ICON.move_coords(x, y)
+        self.text.move_coords(x, y)
 
 
 class ButtonObject(GUIObject):
+    '''gui_options - (x, y, width, height)'''
     CLICK_SOUND = pygame.mixer.Sound('resources/sfx/sounds/click.ogg')
 
-    def __init__(self, gui_options, on_click, content=None, outline=BLUE, text_color=BLACK, **kwargs):
+    def __init__(self, gui_options, on_click, content=None, outline=Color.blue, text_color=Color.black, **kwargs):
         super().__init__(*gui_options, **kwargs)
         self.content = self.create_content_object(content)
         self.rect = pygame.Rect(*gui_options)
@@ -341,7 +348,7 @@ class ButtonObject(GUIObject):
     def update(self):
         if self.content is not None:
             self.content.update()
-        self.outline = BLACK if self.clicked else self.prev_color
+        self.outline = Color.black if self.clicked else self.prev_color
 
     def draw(self, screen):
         if self.content is not None:
@@ -369,6 +376,7 @@ class ButtonObject(GUIObject):
 
 
 class AdvertObject(GUIObject):
+    '''gui_options - (x, y)'''
     def __init__(self, gui_options, image_path, url, **kwargs):
         self.content = ImageObject(gui_options, image_path)
         super().__init__(*gui_options, self.content.width, self.content.height, **kwargs)
@@ -390,7 +398,7 @@ class AdvertObject(GUIObject):
 
     def draw(self, screen):
         self.content.draw(screen)
-        pygame.draw.rect(screen, WOODEN, self.rect, 5)
+        pygame.draw.rect(screen, Color.wooden, self.rect, 5)
         self.CLOSE_ICON.draw(screen)
 
     def move_coords(self, x, y):
@@ -402,6 +410,7 @@ class AdvertObject(GUIObject):
 
 
 class KahootAppObject(GUIObject):
+    '''gui_options - None'''
     BUTTON_PATHS = [f'resources/gfx/kahoot/kahoot-{color}.png' for color in ('red', 'blue', 'green', 'yellow')]
     BUTTON_OPTIONS = [
         (RESOLUTION[0] // 4, RESOLUTION[1] // 4 * 3 - 40), (RESOLUTION[0] // 4 * 3, RESOLUTION[1] // 4 * 3 - 40),
@@ -418,7 +427,7 @@ class KahootAppObject(GUIObject):
             for options, answer in zip(KahootAppObject.BUTTON_OPTIONS, answers):
                 if len(answer) > 30:
                     options = (options[0], options[1] - 40)
-                self.answers.append(TextObject(options, answer, color=WHITE, size=20, max_len=30, spacing=20, font='Helvetica'))
+                self.answers.append(TextObject(options, answer, color=Color.white, size=20, max_len=30, spacing=20, font='Helvetica'))
             self.correct = correct
             self.image = None if image is None else ImageObject(self.IMAGE_OPTIONS, image, centered=True, visible=False)
 
@@ -442,6 +451,7 @@ class KahootAppObject(GUIObject):
 
     def start(self):
         self.current_question = 0
+        self._app_instance.global_objects['timer'].disable()
         self.enable()
 
     def handle_event(self, event):
@@ -460,7 +470,7 @@ class KahootAppObject(GUIObject):
                     if self.questions[self.current_question].select(self.clicked_id):
                         self.current_question += 1
                     else:
-                        self._app_instance.increase_timer(120)
+                        self._app_instance.global_objects['timer'].increase(minutes=2)
                         self.return_back()
                     break
             self.clicked = False
@@ -469,7 +479,10 @@ class KahootAppObject(GUIObject):
         # Last question is correct
         if self.current_question == len(self.questions):
             self.return_back()
-            self._app_instance.current_level.get_object('elevator_button_up').enabled = True
+            elevator_button = self._app_instance.current_level.get_object('elevator_button_up')
+            if not elevator_button.enabled:
+                self._app_instance.global_objects['timer'].decrease(minutes=5)
+                elevator_button.enabled = True
 
     def draw(self, screen):
         if self.current_question == -1:
@@ -481,12 +494,14 @@ class KahootAppObject(GUIObject):
 
     def return_back(self):
         self.current_question = -1
+        self._app_instance.global_objects['timer'].enable()
         for gui_object in self._app_instance.current_level.get_all_objects():
-            if gui_object.name != 'instructions_dialogue':
+            if gui_object.name != 'instructions_message':
                 gui_object.enable()
 
 
 class TaskPanelObject(GUIObject):
+    '''gui_options - None'''
     PANEL_PATH = 'resources/gfx/task-panel/panel.png'
 
     class Task:
@@ -499,17 +514,17 @@ class TaskPanelObject(GUIObject):
             self.tests = tests
 
         def submit(self, parent):
-            parent.submit_message.update_text('Automatic correction in progress... Please wait.', pygame.Color('lightskyblue3'))
+            parent.submit_message.update_text('Automatic correction in progress... Please wait.', Color.inactive)
             result = self._process_submit()
             parent.result = result
 
             message_dict = {
-                'OK': ('Success!', SUCCESS),
-                'WA': ('Wrong answer!', ERROR),
-                'TLE': ('Time limit exceeded.', ERROR),
-                'EXC': ('Your program returned non zero value (see console).', ERROR),
-                'FNF': (f'File {self.name + ".py"} not found in submits folder', WARNING),
-                'ERR': ('Something went seriously wrong. Check console and contact admin.', ERROR),
+                'OK': ('Success!', Color.success),
+                'WA': ('Wrong answer!', Color.error),
+                'TLE': ('Time limit exceeded.', Color.error),
+                'EXC': ('Your program returned non zero value (see console).', Color.error),
+                'FNF': (f'File {self.name + ".py"} not found in submits folder', Color.warning),
+                'ERR': ('Something went seriously wrong. Check console and contact admin.', Color.error),
             }
             parent.submit_message.update_text(*message_dict[result])
 
@@ -550,17 +565,20 @@ class TaskPanelObject(GUIObject):
         self.panel_top = ImageObject((x_mid, y_mid + 190), 'resources/gfx/task-panel/panel-top.png', centered=True, scale=(100, 100))
         self.left_arrow = ImageObject((x_mid - 140, y_mid - 230), 'resources/gfx/task-panel/left-arrow.png', scale=(50, 50))
         self.right_arrow = ImageObject((x_mid + 90, y_mid - 230), 'resources/gfx/task-panel/right-arrow.png', scale=(50, 50))
-        self.task_number_text = TextObject((x_mid - 50, y_mid - 205), '1', color=RED, size=40)
+        self.task_number_text = TextObject((x_mid - 50, y_mid - 205), '1', color=Color.red, size=40)
+        self.timer_object = self._app_instance.global_objects['timer']
+        self.time_text = TextObject((self.x + 180, self.y + 47), TimerObject.convert_time(self.timer_object.get_time()), centered=True, color=Color.red, size=25)
         self.current_task = 0
         self.is_completed = False
         self.result = None
         self.tasks = [self.Task(*task) for task in TASKS]
-        self.submit_message = TextObject((x_mid, y_mid + 45), f'Leave {self.tasks[0].name + ".py"} in sumbits folder and press SUBMIT to submit.', color=WARNING, max_len=22, spacing=15, centered=True)
-        self.dialogues = [DialogueObject((150, 200, 700, 300), task.text, obj_id=self.obj_id, app=self._app_instance) for task in self.tasks]
+        self.submit_message = TextObject((x_mid, y_mid + 45), f'Leave {self.tasks[0].name + ".py"} in sumbits folder and press SUBMIT to submit.',
+                                         color=Color.warning, max_len=28, spacing=15, centered=True)
+        self.messages = [MessageObject((200, 200, 800), task.text, obj_id=self.obj_id, app=self._app_instance) for task in self.tasks]
 
     def handle_event(self, event):
-        if self.dialogues[self.current_task].reactive:
-            self.dialogues[self.current_task].handle_event(event)
+        if self.messages[self.current_task].reactive:
+            self.messages[self.current_task].handle_event(event)
             return
         if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
             if self.elevator_button.reactive and self.elevator_button.collision():
@@ -572,7 +590,7 @@ class TaskPanelObject(GUIObject):
                 thread = threading.Thread(target=self.tasks[self.current_task].submit, args=[self])
                 thread.start()
             elif self.button_task.collision():
-                self.dialogues[self.current_task].enable()
+                self.messages[self.current_task].enable()
             elif self.left_arrow.reactive and self.left_arrow.collision():
                 self.current_task -= 1
                 self.submit_message.update_text(f'Leave {self.tasks[self.current_task].name + ".py"} in sumbits folder and press SUBMIT to submit.')
@@ -587,25 +605,32 @@ class TaskPanelObject(GUIObject):
             self.is_completed = True
             self.panel_top.disable()
             self.elevator_button.enable()
-            self.task_number_text.update_text(color=SUCCESS)
+            self.task_number_text.update_text(color=Color.success)
+            self.time_text.update_text(color=Color.green)
+            self.timer_object.stop()
+            self.timer_object.disable()
             self.result = None
 
-        if self.dialogues[self.current_task].active:
-            self.dialogues[self.current_task].update()
+        if self.messages[self.current_task].active:
+            self.messages[self.current_task].update()
 
         if self.current_task != 0:
             self.left_arrow.enable()
         else:
             self.left_arrow.disable()
-        if self.current_task != len(self.tasks) - 1:
+        if self.current_task != self.timer_object.stage - 1:
             self.right_arrow.enable()
         else:
             self.right_arrow.disable()
+        
+        if self.time_text.text != self.timer_object.time_text.text:
+            self.time_text.update_text(self.timer_object.time_text.text)
 
     def draw(self, screen):
         self.panel.draw(screen)
         
         self.task_number_text.draw(screen)
+        self.time_text.draw(screen)
         self.button_submit.draw(screen)
         self.button_task.draw(screen)
         self.submit_message.draw(screen)
@@ -619,13 +644,13 @@ class TaskPanelObject(GUIObject):
         if self.panel_top.visible:
             self.panel_top.draw(screen)
 
-        if self.dialogues[self.current_task].visible:
-            self.dialogues[self.current_task].draw(screen)
+        if self.messages[self.current_task].visible:
+            self.messages[self.current_task].draw(screen)
 
     def move_coords(self, x, y):
         super().move_coords(x, y)
         self.panel.move_coords(x, y)
-        self.dialogues[self.current_task].move_coords(x, y)
+        self.messages[self.current_task].move_coords(x, y)
         self.button_task.move_coords(x, y)
         self.button_submit.move_coords(x, y)
         self.elevator_button.move_coords(x, y)
@@ -633,9 +658,128 @@ class TaskPanelObject(GUIObject):
         self.left_arrow.move_coords(x, y)
         self.right_arrow.move_coords(x, y)
         self.submit_message.move_coords(x, y)
+        self.task_number_text.move_coords(x, y)
+        self.time_text.move_coords(x, y)
+
+
+class SwitchObject(GUIObject):
+    '''gui_options - (x, y, width, height)'''
+    PANEL_IMAGE_PATH = 'resources/gfx/switch/switch-panel.png'
+    SWITCH_BUTTON_IMAGE_PATH = 'resources/gfx/switch/switch-button.png'
+
+    def __init__(self, gui_options, switch_function, status=False, **kwargs):
+        super().__init__(*gui_options, **kwargs)
+        self.panel_img = ImageObject((self.x, self.y), self.PANEL_IMAGE_PATH, scale=(self.width, self.height))
+        self.switch_button = ImageObject((self.x + self.width // 4, self.y + self.height // 2),
+                                          self.SWITCH_BUTTON_IMAGE_PATH, scale=(self.width // 2 - 5, self.height - 5), centered=True)
+        self.switch_function = switch_function
+        self.clicked = False
+        self.status = status
+
+    def handle_event(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.switch_button.collision():
+                self.clicked = True
+        if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
+            if self.switch_button.collision() and self.clicked and self.visible:
+                self.status = not self.status
+                self.switch_function(self._app_instance, self.status)
+                MoveObjectAnimation(self.switch_button, self.x + self.width // 2 * self.status, self.y, app=self._app_instance)
+            self.clicked = False
+
+    def draw(self, screen):
+        self.panel_img.draw(screen)
+        self.switch_button.draw(screen)
+
+    def move_coords(self, x, y):
+        super().move_coords(x, y)
+        self.panel_img.move_coords(x, y)
+        self.switch_button.move_coords(x, y)
+
+
+class TimerObject(GUIObject):
+    '''gui_options - (x, y, width, height)'''
+    TIMER_PANEL_IMG_PATH = 'resources/gfx/timer/timer-panel.png'
+
+    def __init__(self, gui_options, **kwargs):
+        super().__init__(*gui_options, active=False, **kwargs)
+        self.stage = 1
+        self._seconds = 60 * 20  # 20:00
+        self.panel_img = ImageObject(gui_options, self.TIMER_PANEL_IMG_PATH, scale=(self.width, self.height), centered=True)
+        self.time_text = TextObject((self.x + 30, self.y), TimerObject.convert_time(self._seconds), centered=True, color=Color.red, size=40)
+        self.stage_text = TextObject((self.x - self.width // 3, self.y), str(self.stage), centered=True, color=Color.red, size=40)
+        self.time_change_text = None
+        self.time = time.time()
+        self.dead = False
+
+    def update(self):
+        if time.time() - self.time > 1:
+            self.decrease(seconds=1, animation=False)
+            self.time += 1
+            self.time_text.update_text(TimerObject.convert_time(self._seconds))
+
+        if self._seconds > 20 * 60:
+            if self.stage > 1:
+                self.stage -= 1
+                self._seconds %= 20 * 60
+            else:
+                self._seconds = 20 * 60
+            self.time_text.update_text(TimerObject.convert_time(self._seconds))
+            self.stage_text.update_text(str(self.stage))
+        elif self._seconds <= 0:
+            if self.stage < 5:
+                self.stage += 1
+                self._seconds = 20 * 60 + self._seconds
+            else:
+                self._seconds = 0
+            self.time_text.update_text(TimerObject.convert_time(self._seconds))
+            self.stage_text.update_text(str(self.stage))
+
+
+    def draw(self, screen):
+        self.panel_img.draw(screen)
+        self.time_text.draw(screen)
+        self.stage_text.draw(screen)
+        if self.time_change_text is not None:
+            self.time_change_text.draw(screen)
+
+    def get_time(self):
+        return self._seconds
+
+    @staticmethod
+    def convert_time(seconds):
+        minutes = seconds // 60
+        seconds = seconds % 60
+        return f'{minutes:02}:{seconds:02}'
+
+    def start(self):
+        self.time = time.time()
+        self.active = True
+    
+    def stop(self):
+        self.active = False
+
+    def increase(self, minutes=0, seconds=0, animation=True):
+        self._seconds += seconds + minutes * 60
+        if animation:
+            self._animate_timer_change(seconds + minutes * 60)
+
+    def decrease(self, minutes=0, seconds=0, animation=True):
+        self.increase(minutes=-minutes, seconds=-seconds, animation=animation)
+
+    def enable(self):
+        if not self.dead:
+            super().enable()
+
+    def _animate_timer_change(self, seconds):
+        color = Color.green if seconds < 0 else Color.red
+        sign = '-' if seconds < 0 else '+'
+        self.time_change_text = TextObject((self.x + self.width // 2, self.y), f'{sign}{TimerObject.convert_time(abs(seconds))}', color=color, centered=True, size=25)
+        MoveObjectAnimation(self.time_change_text, self.time_change_text.x, self.time_change_text.y - 30, disappear=True, app=self._app_instance)
 
 
 class ChangeLevelObject(GUIObject):
+    '''gui_options - (x, y)'''
     def __init__(self, gui_options, direction, enabled=None, **kwargs):
         self.img_enabled = ImageObject(gui_options, f'resources/gfx/elevator/elevator-{direction}.png')
         self.img_disabled = ImageObject(gui_options, f'resources/gfx/elevator/elevator-{direction}-dis.png')
@@ -677,11 +821,13 @@ object_type_dict = {
     'object': GUIObject,
     'advert': AdvertObject,
     'button': ButtonObject,
-    'dialogue': DialogueObject,
+    'message': MessageObject,
     'image': ImageObject,
     'input': InputObject,
     'kahoot': KahootAppObject,
     'level_changer': ChangeLevelObject,
+    'switch': SwitchObject,
     'task_panel': TaskPanelObject,
     'text': TextObject,
+    'timer': TimerObject,
 }

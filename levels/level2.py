@@ -1,23 +1,10 @@
-OBJECTS = {
-    'sample_input_box': {
-        'type': 'input',
-        'options': {
-            'gui_options': (300, 110, 150, 100),
-            'task': '1 + 1 = ?',
-            'answer': '10',
-            'correct': 'Wow, si geniálny!',
-            'wrong': 'je mi ľúto, ale 2 to nie je :D',
-            'sfx': True,
-        }
-    },
+BACKGROUND = 'resources/gfx/backgrounds/bg-brick-wall.png'
+MUSIC = 'resources/sfx/themes/submit-room-music.mp3'
 
-    'sample_advert': {
-        'type': 'advert',
-        'options': {
-            'gui_options': (100, 100),
-            'image_path': 'resources/gfx/adverts/ad1.png',
-            'url': 'google.com',
-        }
+OBJECTS = {
+    'task_panel': {
+        'type': 'task_panel',
+        'options': {}
     },
 
     'elevator_panel': {
@@ -43,6 +30,18 @@ OBJECTS = {
             'gui_options': (1100, 350),
             'direction': 'down',
             'enabled': True,
+            'reactive': False,
+            'active': False,
+            'visible': False,
         }
     },
+
+    'welcome_message': {
+        'type': 'message',
+        'options': {
+            'gui_options': (300, 200, 600),
+            'text': 'Vitaj. Toto je testovač. Testovač treba poraziť. Akonáhle je testovač porazený, nebude sa dať poraziť znovu. Čím skôr porazíš testovač, tým viac ťa odmení. Mimochodom, príde ti "$" ako zaujímavý argument?',
+            'enabled': True,
+        }
+    }
 }

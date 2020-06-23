@@ -1,22 +1,18 @@
-BACKGROUND = 'resources/gfx/adverts/ad3.png'
-# MUSIC = 'resources/sfx/themes/ruski-melody.mp3'
+BACKGROUND = 'resources/gfx/backgrounds/bg-dark-room.png'
+MUSIC = 'resources/sfx/themes/basement.mp3'
+
+
+def switch_mode(app, status):
+    app.easy_mode = status
+
 
 OBJECTS = {
-    'sample_input': {
-        'type': 'input',
+    'ez_mode_switch': {
+        'type': 'switch',
         'options': {
-            'gui_options': (100, 50, 210, 32),
-            'task': '1 + 1 = ?',
-            'answer': '10',
-            'correct': 'Wow, si geniálny!',
-            'wrong': 'je mi ľúto, ale 2 to nie je :D',
-            'sfx': True,
+            'gui_options': (550, 300, 200, 100),
+            'switch_function': switch_mode,
         }
-    },
-
-    'task_panel': {
-        'type': 'task_panel',
-        'options': {}
     },
 
     'elevator_panel': {
@@ -33,18 +29,6 @@ OBJECTS = {
             'gui_options': (1100, 200),
             'direction': 'up',
             'enabled': True,
-        }
-    },
-
-    'elevator_button_down': {
-        'type': 'level_changer',
-        'options': {
-            'gui_options': (1100, 350),
-            'direction': 'down',
-            'enabled': True,
-            'reactive': False,
-            'active': False,
-            'visible': False,
         }
     },
 }

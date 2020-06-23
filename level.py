@@ -1,4 +1,4 @@
-from constants import RESOLUTION
+from window_constants import RESOLUTION
 import object_classes as obj_cls
 
 
@@ -29,7 +29,9 @@ class Level:
         yield from self._objects.values()
 
     def get_object(self, name):
-        return self._objects[name]
+        if name in self._objects:
+            return self._objects[name]
+        return None
 
     @staticmethod
     def create_gui_objects(objects, app=None):

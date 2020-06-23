@@ -1,0 +1,2 @@
+FPS = 60
+RESOLUTION = (1280, 720)
