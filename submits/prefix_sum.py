@@ -10,4 +10,4 @@ n = int(input())
 for i in range(n):
     from_idx, to_idx = map(int, input().split())
     from_idx, to_idx = from_idx + 1, to_idx + 1
-    print(prefix_array[to_idx] + prefix_array[from_idx - 1])
+    print(prefix_array[to_idx] - prefix_array[from_idx - 1])

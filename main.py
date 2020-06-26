@@ -23,7 +23,8 @@ class App:
         self.easy_mode = False
         self.argv1 = None if len(sys.argv) == 1 else sys.argv[1]
         self.current_level = None
-        self.current_level_id = 0 if self.argv1 is None else 2
+        self.current_level_id = 0 if self.argv1 is None else 5
+        self.current_highest_floor = self.current_level_id
         self.transition = FloorTransition(active=False)
         self.levels = []
         self.enabled_input_objects = set()
@@ -66,7 +67,9 @@ class App:
     def move_screen(self, direction):
         new_level_id = direction + self.current_level_id
         if 0 <= new_level_id < len(self.levels):
-            self.transition = FloorTransition(self.current_level, self.levels[new_level_id], direction)
+            is_new_floor = new_level_id > self.current_highest_floor
+            self.transition = FloorTransition(self.current_level, self.levels[new_level_id], direction, level_up=is_new_floor, app=self)
+            self.current_highest_floor = max(self.current_highest_floor, new_level_id)
 
     def handle_input(self):
         # Forbid input while transition is active
@@ -118,7 +121,13 @@ class App:
         if welcome_message is not None and not welcome_message.visible and only_once_change[0]:
             self.global_objects['timer'].start()
             only_once_change[0] = False
+        
+        if self.current_level_id in (3, 5) and all(self.current_level.get_object(f'input_{i}').done for i in range(1, 5)):
+            self.current_level.get_object('elevator_button_up').enabled = True
 
+        if self.current_level_id == 5:
+            if not random.randrange(30):
+                self.current_level.get_object(f'ad_{random.randint(1, 4)}').enable()
 
     def render(self):
         self.current_level.background.draw(self.pg_screen)

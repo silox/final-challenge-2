@@ -1,10 +1,17 @@
 from itertools import chain
+from random import randint
 
 from window_constants import RESOLUTION, FPS
 
+import pygame
+
+
+pygame.mixer.init()
+
 
 class FloorTransition:
-    def __init__(self, old_level=None, new_level=None, direction=0, duration=0.5, active=True):
+    def __init__(self, old_level=None, new_level=None, direction=0, level_up=False, active=True, app=None):
+        duration = 4 if level_up else 0.5
         assert RESOLUTION[1] % duration == 0 and FPS * duration < RESOLUTION[1]
         self.y_shift = RESOLUTION[1] // (duration * FPS)
         self.total_shift = 0
@@ -12,10 +19,16 @@ class FloorTransition:
         self.old_level = old_level
         self.active = active
         self.new_level = new_level
+        self.app = app
+        if level_up:
+            pygame.mixer.music.load(f'resources/sfx/elevator/elevator{randint(1, 3)}.mp3')
+            pygame.mixer.music.play()
         if old_level is not None and new_level is not None:
             for obj in new_level.get_all_objects():
                 obj.move_coords(0, -RESOLUTION[1] * direction)
             new_level.background.y -= RESOLUTION[1] * direction
+        if app is not None:
+            app.global_objects['timer'].disable()
 
     def move(self, app=None):
         if not self.active:
@@ -29,6 +42,8 @@ class FloorTransition:
                 obj.move_coords(0, -self.total_shift * self.direction)
             self.old_level.background.y = 0
             self.total_shift = 0
+            if self.app is not None:
+                self.app.global_objects['timer'].enable()
         else:
             # moving
             self.old_level.background.move_coords(0, self.y_shift * self.direction)

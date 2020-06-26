@@ -50,18 +50,18 @@ kahoot_questions_data = [
         'correct': 0,
         'image': 'resources/gfx/kahoot/kahoot-image6.png',
     },
-    # {
-    #     'question': '',
-    #     'answers': ('', '', '', ''),
-    #     'correct': ,
-    #     'image': 'resources/gfx/kahoot/kahoot-image.png',
-    # },
-    # {
-    #     'question': '',
-    #     'answers': ('', '', '', ''),
-    #     'correct': ,
-    #     'image': 'resources/gfx/kahoot/kahoot-image.png',
-    # },
+    {
+        'question': 'Čo sa vypíše po spustení programu "export.py" v adresári, kde sa nachádza? (namiesto výpisu pod seba je výpis oddelený čiarkami)',
+        'answers': ('1, 2, 2, 1', '1, 2, 1, 2', '1, [ďalej následuje chybový výpis o cyklickom importe]', '1, 1, 2, 2'),
+        'correct': 3,
+        'image': 'resources/gfx/kahoot/kahoot-image7.png',
+    },
+    {
+        'question': 'Aký bude výstup programu?',
+        'answers': ('5 0', '5 1', '42 0', '42 1'),
+        'correct': 3,
+        'image': 'resources/gfx/kahoot/kahoot-image8.png',
+    },
 ]
 
 OBJECTS = {
