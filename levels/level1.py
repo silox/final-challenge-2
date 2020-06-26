@@ -1,13 +1,15 @@
-BACKGROUND = 'resources/gfx/backgrounds/bg-dark-room.png'
-MUSIC = 'resources/sfx/themes/basement.mp3'
+# Basement floor
 
 
 def switch_mode(app, status):
     app.easy_mode = status
 
 
+BACKGROUND = 'resources/gfx/backgrounds/bg-dark-room.png'
+MUSIC = 'resources/sfx/themes/basement.mp3'
+
 OBJECTS = {
-    'ez_mode_switch': {
+    'switch': {
         'type': 'switch',
         'options': {
             'gui_options': (550, 300, 200, 100),

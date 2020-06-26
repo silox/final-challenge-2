@@ -11,7 +11,7 @@ pygame.mixer.init()
 
 class FloorTransition:
     def __init__(self, old_level=None, new_level=None, direction=0, level_up=False, active=True, app=None):
-        duration = 4 if level_up else 0.5
+        duration = 8 if level_up else 1
         assert RESOLUTION[1] % duration == 0 and FPS * duration < RESOLUTION[1]
         self.y_shift = RESOLUTION[1] // (duration * FPS)
         self.total_shift = 0

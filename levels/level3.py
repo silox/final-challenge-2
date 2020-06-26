@@ -1,4 +1,4 @@
-# Easy input box level
+# Easy input box floor
 
 def tiny_button_click(app):
     music_title = app.current_level.get_object('music_title')

@@ -96,8 +96,9 @@ class TextObject(GUIObject):
                 self.rects[-1].center = self.x, self.y + i * self.spacing
 
     def draw(self, screen):
-        for font, rect in zip(self._fonts, self.rects):
-            screen.blit(font, rect)
+        if self.visible:
+            for font, rect in zip(self._fonts, self.rects):
+                screen.blit(font, rect)
 
     def move_coords(self, x, y):
         super().move_coords(x, y)
@@ -223,12 +224,12 @@ class InputObject(GUIObject):
         self.ticks = 5 if self.comfy_timer or self.event_char else self.ticks + 1
 
     def draw(self, screen):
-        screen.blit(self.font, (self.rect.x + self.height // 2 - self.FONT_SIZE, self.rect.y + self.height // 4))
+        screen.blit(self.font, (self.rect.x + self.FONT_SIZE, self.rect.y + self.height // 4))
         pygame.draw.rect(screen, self.color, self.rect, 2)
         self.task_text.draw(screen)
         self.bottom_text.draw(screen)
         if self.active_cursor and self.ticks % 50 < 25:
-            cursor_x = (self.x + (self.idx + 1) * self.FONT_SIZE) - self.FONT_SIZE // 2 + 1
+            cursor_x = (self.x + 4 + (self.idx + 1) * self.FONT_SIZE) - self.FONT_SIZE // 2 + 1
             pygame.draw.line(screen, Color.black, (cursor_x, self.y + self.height // 4), (cursor_x, self.y + int(self.height * 0.75)), 2)
 
     def move_coords(self, x, y):
@@ -417,6 +418,7 @@ class KahootAppObject(GUIObject):
         (RESOLUTION[0] // 4, RESOLUTION[1] // 4 * 3 - 40), (RESOLUTION[0] // 4 * 3, RESOLUTION[1] // 4 * 3 - 40),
         (RESOLUTION[0] // 4, RESOLUTION[1] // 4 * 3 + 100), (RESOLUTION[0] // 4 * 3, RESOLUTION[1] // 4 * 3 + 100),
     ]
+    GONG_SOUND = pygame.mixer.Sound('resources/sfx/sounds/kahoot-gong.ogg')
 
     class Question:
         IMAGE_OPTIONS = (RESOLUTION[0] // 2, RESOLUTION[1] // 2 - 100)
@@ -474,6 +476,7 @@ class KahootAppObject(GUIObject):
                         self.return_back()
                         if not self._app_instance.current_level.get_object('elevator_button_up').enabled:
                             self._app_instance.global_objects['timer'].increase(minutes=2)
+                            self.GONG_SOUND.play()
                     break
             self.clicked = False
 

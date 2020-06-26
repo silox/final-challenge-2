@@ -1,3 +1,5 @@
+# Submit floor
+
 BACKGROUND = 'resources/gfx/backgrounds/bg-brick-wall.png'
 MUSIC = 'resources/sfx/themes/submit-room-music.mp3'
 

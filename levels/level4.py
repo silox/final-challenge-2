@@ -1,4 +1,4 @@
-# Kahoot level
+# Kahoot floor
 
 MUSIC = 'resources/sfx/themes/kahoot-music.mp3'
 
@@ -61,6 +61,24 @@ kahoot_questions_data = [
         'answers': ('5 0', '5 1', '42 0', '42 1'),
         'correct': 3,
         'image': 'resources/gfx/kahoot/kahoot-image8.png',
+    },
+    {
+        'question': 'Čo vypíše print(*range(4), sep=",", end=",\n")',
+        'answers': ('0,1,2,3,,', '0,1,2,3,', '0,1,2,3,4,,', '0,1,2,3,4,'),
+        'correct': 1,
+        'image': 'resources/gfx/kahoot/kahoot-image9.png',
+    },
+    {
+        'question': 'Čo vypíše program?',
+        'answers': ('True', 'False', 'KeyError', 'Iná habaďúra'),
+        'correct': 0,
+        'image': 'resources/gfx/kahoot/kahoot-image10.png',
+    },
+    {
+        'question': 'Aký bude výstup programu?',
+        'answers': ('(1, 4)', '(3, 2)', '(7, 1)', '(3, 3)'),
+        'correct': 3,
+        'image': 'resources/gfx/kahoot/kahoot-image11.png',
     },
 ]
 

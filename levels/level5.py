@@ -1,4 +1,4 @@
-# Advert level
+# Advert floor
 
 BACKGROUND = 'resources/gfx/backgrounds/bg-adverts.png'
 MUSIC = 'resources/sfx/themes/advert-music.mp3'
