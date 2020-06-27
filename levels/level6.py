@@ -1,5 +1,6 @@
 # Silent floor
 
+
 def silence_button_click(app, only_once_checker=[True]):
     app.current_level.get_object('silence_message').enable()
     if only_once_checker[0]:

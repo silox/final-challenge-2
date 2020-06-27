@@ -19,6 +19,7 @@ def bfs(graph, from_node, to_node):
                 queue.append((neighbour, dist + 1))
     return -1
 
+
 def main():
     nodes, edges = map(int, input().split())
     source, destination, connector = map(int, input().split())

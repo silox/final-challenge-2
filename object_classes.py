@@ -7,7 +7,7 @@ import webbrowser
 from animation import MoveObjectAnimation
 from colors import Color
 from tasks import TASKS
-from window_constants import FPS, RESOLUTION
+from window_constants import RESOLUTION
 
 
 pygame.init()
@@ -425,7 +425,7 @@ class KahootAppObject(GUIObject):
         QUESTION_TEXT_OPTIONS = (RESOLUTION[0] // 2, 50)
 
         def __init__(self, question, answers, correct, image=None):
-            self.question_text = TextObject(self.QUESTION_TEXT_OPTIONS, question, size=30, font='Helvetica', visible=False)
+            self.question_text = TextObject(self.QUESTION_TEXT_OPTIONS, question, size=30, font='Helvetica', visible=True)
             self.answers = []
             for options, answer in zip(KahootAppObject.BUTTON_OPTIONS, answers):
                 if len(answer) > 30:
@@ -476,7 +476,6 @@ class KahootAppObject(GUIObject):
                         self.return_back()
                         if not self._app_instance.current_level.get_object('elevator_button_up').enabled:
                             self._app_instance.global_objects['timer'].increase(minutes=2)
-                            self.GONG_SOUND.play()
                     break
             self.clicked = False
 
@@ -484,6 +483,7 @@ class KahootAppObject(GUIObject):
         # Last question is correct
         if self.current_question == len(self.questions):
             self.return_back()
+            self.GONG_SOUND.play()
             elevator_button = self._app_instance.current_level.get_object('elevator_button_up')
             if not elevator_button.enabled:
                 self._app_instance.global_objects['timer'].decrease(minutes=15)
@@ -492,7 +492,6 @@ class KahootAppObject(GUIObject):
     def draw(self, screen):
         if self.current_question == -1:
             return
-
         for button in self.buttons:
             button.draw(screen)
         self.questions[self.current_question].draw(screen)
@@ -632,17 +631,17 @@ class TaskPanelObject(GUIObject):
             self.right_arrow.enable()
         else:
             self.right_arrow.disable()
-        
+
         if self.time_text.text != self.timer_object.time_text.text:
             self.time_text.update_text(self.timer_object.time_text.text)
-        
+
         if self.current_task + 1 > self.timer_object.stage:
             self.current_task -= 1
             self.task_number_text.update_text(text=str(self.current_task + 1))
 
     def draw(self, screen):
         self.panel.draw(screen)
-        
+
         self.task_number_text.draw(screen)
         self.time_text.draw(screen)
         self.button_submit.draw(screen)
@@ -685,7 +684,7 @@ class SwitchObject(GUIObject):
         super().__init__(*gui_options, **kwargs)
         self.panel_img = ImageObject((self.x, self.y), self.PANEL_IMAGE_PATH, scale=(self.width, self.height))
         self.switch_button = ImageObject((self.x + self.width // 4, self.y + self.height // 2),
-                                          self.SWITCH_BUTTON_IMAGE_PATH, scale=(self.width // 2 - 5, self.height - 5), centered=True)
+                                         self.SWITCH_BUTTON_IMAGE_PATH, scale=(self.width // 2 - 5, self.height - 5), centered=True)
         self.switch_function = switch_function
         self.clicked = False
         self.status = status
@@ -749,7 +748,6 @@ class TimerObject(GUIObject):
             self.time_text.update_text(TimerObject.convert_time(self._seconds))
             self.stage_text.update_text(str(self.stage))
 
-
     def draw(self, screen):
         self.panel_img.draw(screen)
         self.time_text.draw(screen)
@@ -769,7 +767,7 @@ class TimerObject(GUIObject):
     def start(self):
         self.time = time.time()
         self.active = True
-    
+
     def stop(self):
         self.active = False
 

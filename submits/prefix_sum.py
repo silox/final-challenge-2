@@ -4,6 +4,7 @@ def make_prefix_array(array):
         result.append(result[-1] + value)
     return result
 
+
 array = list(map(int, input().split()))
 prefix_array = make_prefix_array(array)
 n = int(input())

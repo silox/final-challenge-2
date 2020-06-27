@@ -31,7 +31,6 @@ OBJECTS = {
         'options': {
             'gui_options': (1100, 350),
             'direction': 'down',
-            'enabled': True,
             'reactive': False,
             'active': False,
             'visible': False,

@@ -1,5 +1,6 @@
 # Welcome screen
 
+
 def bsod_button_click(app):
     app.current_level.get_object('bsod_background').enable()
     app.current_level.get_object('bsod_button').disable()
@@ -63,7 +64,7 @@ OBJECTS = {
     'quit_button': {
         'type': 'button',
         'options': {
-            'gui_options': (500, 600, 200, 70),
+            'gui_options': (550, 600, 200, 70),
             'on_click': quit_click,
             'content': {
                 'type': 'text',
@@ -71,9 +72,9 @@ OBJECTS = {
                     'text': 'Quit',
                     'font': 'Times New Roman',
                     'size': 30,
+                    'color': (255, 255, 255),
                 }
             }
         }
     },
-
 }

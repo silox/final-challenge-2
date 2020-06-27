@@ -12,12 +12,6 @@ def binary_search(arr, val):
     return -1
 
 
-def binary_search_slow(arr, val):
-    try:
-        return arr.index(val)
-    except ValueError:
-        return -1
-
 input_array = list(map(int, input().split()))
 for value in map(int, input().split()):
     print(binary_search(input_array, value))

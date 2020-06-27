@@ -5,7 +5,6 @@ import random
 import sys
 import time
 
-from colors import Color
 from global_objects import GLOBAL_OBJECTS
 from level import Level
 from animation import FloorTransition, MoveObjectAnimation
@@ -28,12 +27,13 @@ class App:
         self.quit = False
         self.argv1 = None if len(sys.argv) == 1 else sys.argv[1]
         self.current_level = None
-        self.current_level_id = 0 if self.argv1 is None else 7
+        self.current_level_id = 0 if self.argv1 is None else 2
         self.current_highest_floor = self.current_level_id
         self.transition = FloorTransition(active=False)
         self.levels = []
         self.enabled_input_objects = set()
         self.disable_input = False
+        self.start_time = time.time()
         self.global_objects = Level.create_gui_objects(GLOBAL_OBJECTS, self)
         self.load_levels()
         self.special_init()
@@ -108,6 +108,28 @@ class App:
             if event.type == pygame.KEYDOWN and event.key == pygame.K_u and pygame.key.get_mods() & pygame.KMOD_CTRL:
                 self.current_level.get_object('elevator_button_up').enabled = True
 
+        if self.current_level_id == 7 and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            hidden_panel = self.current_level.get_object('hidden_panel')
+            hidden_button_1 = self.current_level.get_object('hidden_button_1')
+            hidden_button_2 = self.current_level.get_object('hidden_button_2')
+            if hidden_panel.reactive and hidden_panel.collision():
+                hidden_panel.disable()
+                self.current_level.get_object('elevator_panel').enable()
+            elif hidden_button_1.reactive and hidden_button_1.collision():
+                MoveObjectAnimation(hidden_button_1, 600, 800, app=self, disappear_after=True)
+                self.levels[1].get_object('elevator_button_down').enable()
+                [gui_object.disable() for gui_object in self.levels[0].get_all_objects()]
+                self.levels[0].get_object('result_screen_background').enable()
+                self.levels[0].get_object('quit_button').enable()
+                result_text = self.levels[0].get_object('result_text')
+                result_text.enable()
+                time_points = int((60 * 60 * 2 - time.time() + self.start_time) // 2)
+                final_score = 2549 + self.levels[2].get_object('task_panel').final_points + max(0, time_points)
+                result_text.update_text(text=result_text.text.replace('$', str(final_score)))
+            elif hidden_button_2.reactive and hidden_button_2.collision():
+                hidden_button_2.disable()
+                self.current_level.get_object('elevator_button_down').enable()
+
     def logic(self):
         # do transition between levels if transition is active
         self.transition.move(self)
@@ -123,12 +145,12 @@ class App:
         for obj in self.current_level.get_all_objects():
             if obj.active:
                 obj.update()
-        
+
         # do logic for all global objects
         for global_object in self.global_objects.values():
             if global_object.active:
                 global_object.update()
-        
+
         # do some additional special logic
         self.special_logic()
 
@@ -137,14 +159,14 @@ class App:
         if welcome_message is not None and not welcome_message.visible and only_once_change[0]:
             self.global_objects['timer'].start()
             only_once_change[0] = False
-        
+
         if self.current_level_id in (3, 5) and all(self.current_level.get_object(f'input_{i}').done for i in range(1, 5)):
             self.current_level.get_object('elevator_button_up').enabled = True
 
         if self.current_level_id == 5:
             if not random.randrange(30):
                 self.current_level.get_object(f'ad_{random.randint(1, 4)}').enable()
-        
+
         if self.current_level_id == 1:
             self.switch_status = self.current_level.get_object('switch').status
             if self.switch_status:
@@ -153,12 +175,18 @@ class App:
             else:
                 self.levels[6].get_object('calm_text').enable()
                 self.levels[6].get_object('calm_text_light').disable()
-        
+
         if self.current_level_id == 6:
             if self.silence_timer is None:
                 self.silence_timer = time.time()
-            if time.time() - self.silence_timer >= 5:
-                self.current_level.get_object('silence_button').enable() 
+            if time.time() - self.silence_timer >= 60:
+                self.current_level.get_object('silence_button').enable()
+
+        if self.current_level_id == 7 and self.current_level.get_object('final_input').done and self.current_level.get_object('lock_image').visible:
+            self.current_level.get_object('lock_image').disable()
+            self.current_level.get_object('hidden_panel').enable()
+            self.current_level.get_object('hidden_button_1').enable()
+            self.current_level.get_object('hidden_button_2').enable()
 
     def render(self):
         self.current_level.background.draw(self.pg_screen)

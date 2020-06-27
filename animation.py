@@ -58,7 +58,7 @@ class MoveObjectAnimation:
     _SPEED = 2
     moving_objects = {}
 
-    def __init__(self, gui_object, x, y, disappear=False, app=None):
+    def __init__(self, gui_object, x, y, disappear=False, app=None, disappear_after=False):
         '''disappear only implemented for TextObject'''
         self.gui_object = gui_object
         self.x = x
@@ -70,7 +70,8 @@ class MoveObjectAnimation:
         self.moving_objects[self.animation_id] = self
         self.alpha = 255 if disappear else None
         self.app.disable_input = not disappear
-    
+        self.disappear_after = disappear_after
+
     def move(self):
         self.gui_object.x += (self.x - self.start_x) / FPS * self._SPEED
         self.gui_object.y += (self.y - self.start_y) / FPS * self._SPEED
@@ -80,8 +81,10 @@ class MoveObjectAnimation:
             self.gui_object.update_text(alpha=self.alpha)
 
         if abs(self.start_x - self.x) <= abs(self.gui_object.x - self.start_x) \
-            and abs(self.start_y - self.y) <= abs(self.gui_object.y - self.start_y):
-            del self.moving_objects[self.animation_id] 
+           and abs(self.start_y - self.y) <= abs(self.gui_object.y - self.start_y):
+            if self.disappear_after:
+                self.gui_object.disable()
+            del self.moving_objects[self.animation_id]
             self.gui_object.x = self.x
             self.gui_object.y = self.y
             self.app.disable_input = False

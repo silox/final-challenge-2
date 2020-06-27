@@ -33,4 +33,15 @@ OBJECTS = {
             'enabled': True,
         }
     },
+
+    'elevator_button_down': {
+        'type': 'level_changer',
+        'options': {
+            'gui_options': (1100, 350),
+            'direction': 'down',
+            'reactive': False,
+            'active': False,
+            'visible': False,
+        }
+    },
 }
